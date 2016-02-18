@@ -13,7 +13,7 @@ convert_to_numeric(d)
 This function converts a vector or data frame to numeric values
 }
 \examples{
-convert_to_numeric(data.frame(y=array("1", "2", "3")))
+convert_to_numeric(data.frame(y=rbind("1", "2", "3")))
 }
 \keyword{convert}
 \keyword{numeric}

@@ -1,9 +1,19 @@
+#This is an internal function called by convert_to_string
 atomic_convert_to_string <- function(d){
   if(!is.character(d)){
       d <- as(d, "character")
   }
   return(d)
 }
+
+#' Convert To String
+#'
+#' This function converts a vector or data frame to string values
+#' @param d the data to be converted
+#' @keywords string convert
+#' @export
+#' @examples
+#' convert_to_string(data.frame(y=rbind(1, 2, 3)))
 convert_to_string <- function (d){
   if(is.atomic(d)) {
     return(atomic_convert_to_string(d))

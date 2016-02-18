@@ -3,14 +3,14 @@ atomic_convert_to_numeric <- function(d){
   if(!is.numeric(d)){
     if(is.factor(d)) {
       #if the value is NA, set it to 0
-      d[is.na(d)] <- "0"
+      suppressWarnings(d[is.na(d)] <- "0")
       #if factor, convert it to its char representation before converting to numeric. This at least supports factored integer representations
       d <- as(d, "character")
     }
     d <- as(d,"numeric")
   } else {
     #this is numeric, but it could still have NA's
-    d[is.na(d)] <- 0
+    suppressWarnings(d[is.na(d)] <- 0)
   }
   return(d)
 }
@@ -22,7 +22,7 @@ atomic_convert_to_numeric <- function(d){
 #' @keywords numeric convert
 #' @export
 #' @examples
-#' convert_to_numeric(data.frame(y=array("1", "2", "3")))
+#' convert_to_numeric(data.frame(y=rbind("1", "2", "3")))
 convert_to_numeric <- function (d){
   if(is.atomic(d)) {
     return(atomic_convert_to_numeric(d))
