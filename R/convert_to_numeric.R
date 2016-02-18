@@ -1,12 +1,4 @@
-#' Convert To Numeric
-#'
-#' This function converts a vector or data frame to numeric values
-#' @param d the data to be converted
-#' @keywords numeric convert
-#' @export
-#' @examples
-#' convert_to_numeric(data.frame(y=array("1", "2", "3")))
-
+#This is an internal function called by convert_to_numeric
 atomic_convert_to_numeric <- function(d){
   if(!is.numeric(d)){
     if(is.factor(d)) {
@@ -22,6 +14,15 @@ atomic_convert_to_numeric <- function(d){
   }
   return(d)
 }
+
+#' Convert To Numeric
+#'
+#' This function converts a vector or data frame to numeric values
+#' @param d the data to be converted
+#' @keywords numeric convert
+#' @export
+#' @examples
+#' convert_to_numeric(data.frame(y=array("1", "2", "3")))
 convert_to_numeric <- function (d){
   if(is.atomic(d)) {
     return(atomic_convert_to_numeric(d))
