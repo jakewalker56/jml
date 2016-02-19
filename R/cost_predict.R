@@ -1,18 +1,26 @@
-# c is a cost matrix of the form:
-#                            actual
-#                         a              b        c
-#               a        100            100       ...
-#   prediction  !a       200             0        ...
-# 
-
-# p is a probability matrix of the form:
-#                            Probability
-#                         a              b        c
-#               a        0.2            0.8       ...
-# ...which will be normalized to a total of 1.0
-
-
+#' Predict a value based on probability and cost of misprediction
+#'
+#' This function takes in a matrix of costs for mispredicting and a matrix of probabilities of various outcomes.  It returns TRUE if you should predict a, and FALSE if you should predict not-a
+#' @param c the costs matrix
+#' @param p the probability matrix  
+#' @keywords predict probability cost
+#' @export
+#' @examples
+#' predict_a(c, p)
 predict_a <- function(c, p) {
+  # c is a cost matrix of the form:
+  #                            actual
+  #                         a              b        c
+  #               a        100            100       ...
+  #   prediction  !a       200             0        ...
+  # 
+  
+  # p is a probability matrix of the form:
+  #                            Probability
+  #                         a              b        c
+  #               a        0.2            0.8       ...
+  # ...which will be normalized to a total of 1.0
+  
   #don't pass in negative values, n00b
   if(min(p) < 0)
     p <- p + abs(min(p))

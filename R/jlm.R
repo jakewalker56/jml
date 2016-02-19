@@ -12,7 +12,8 @@ jlm <- function(X, Y, ...){
 
 X= data.frame(coef1=rbind(1,4, 5, 8, 10, 9, 14), coef2=rbind(0.5, 0.7, 0.9, 0.81, 0.99, 0.5, 1.1))
 Y= data.frame(response=rbind(1, 2, 3, 4, 5, 6, 7))
-lm(Y$response ~ X$coef1 + X$coef2)
+reg = lm(Y$response ~ X$coef1 + X$coef2)
+summary(reg)
 jlm(X,Y)
 
 function (formula, data, subset, weights, na.action, method = "qr", 
