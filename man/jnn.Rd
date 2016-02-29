@@ -4,7 +4,9 @@
 \alias{jnn}
 \title{Jeneral Neural Net}
 \usage{
-jnn(X, Y, ...)
+jnn(X, Y, type = "basic", activation = "sigmoid", cost = "logit",
+  optimization = "sgd", neurons = c(4, 6), step = "const", alpha = 0.01,
+  iterations = 1000, ...)
 }
 \arguments{
 \item{X}{the input matrix}
