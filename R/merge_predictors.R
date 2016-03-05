@@ -12,7 +12,7 @@ merge_predictors <- function(y, pred1, pred2){
   min_loss = Inf
   min_i = 0
   for(i in seq(from=0, to=1, length.out=101)){
-    loss = multi_log_loss(y, pred1* i + pred2*(1-i))
+    loss = multi_log_loss(data.frame(y), rbind(pred1* i + pred2*(1-i)))
     if(loss < min_loss){
       min_loss = loss
       min_i = i
