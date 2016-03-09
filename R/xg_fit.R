@@ -39,8 +39,7 @@ xg_fit <- function(max_depth_vals=c(5), min_child_weight_vals = c(1), nrounds=20
               "min_child_weight" = min_child_weight,
               "subsample" = subsample,
               "colsample_bytree" = colsample_bytree,
-              "eta" = eta,
-              "objective" = "binary:logistic"
+              "eta" = eta
             )
             
             print(paste("fitting:", params, "nrounds:", nrounds))
