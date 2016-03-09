@@ -34,17 +34,19 @@ xg_fit <- function(max_depth_vals=c(5), min_child_weight_vals = c(1), nrounds=20
             print("current min:")
             print(min_error_vals)
             
-            print(paste("fitting:", 
-                        "max_depth=", max_depth, 
-                        "min_child_weight=", min_child_weight, 
-                        "subsample=",subsample,
-                        "eta=",eta, 
-                        "colsample_bytree=", colsample_bytree))
+            params = list(
+              "max.depth" = max_depth,
+              "min_child_weight" = min_child_weight,
+              "subsample" = subsample,
+              "colsample_bytree" = colsample_bytree,
+              "eta" = eta
+            )
             
-            bst <- xgb.cv(max.depth = max_depth, min_child_weight = min_child_weight, 
-                          subsample=subsample, eta = eta, 
-                          colsample_bytree = colsample_bytree,
-                          metrics=c("logloss"), nrounds=nrounds,
+            print(paste("fitting:", params, "nrounds:", nrounds))
+            
+            metrics = c("mlogloss")
+            bst <- xgb.cv(params=params,
+                          metrics=metrics, nrounds=nrounds,
                           ...)
             #if 1sd above current error is less than 1sd above best error, replace
             if(bst$test.logloss.mean[which.min(bst$test.logloss.mean)] + bst$test.logloss.std[which.min(bst$test.logloss.mean)]
