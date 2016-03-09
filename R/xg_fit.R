@@ -14,6 +14,7 @@
 #' xgfit()
 xg_fit <- function(max_depth_vals=c(5), min_child_weight_vals = c(1), nrounds=200,
                    subsample_vals=c(0.6), eta_vals = c(0.3), colsample_bytree_vals = c(0.2),
+                   metrics = c("logloss"),
                    ... )
 {
   total_iterations = length(max_depth_vals) * length(min_child_weight_vals) *
@@ -42,9 +43,9 @@ xg_fit <- function(max_depth_vals=c(5), min_child_weight_vals = c(1), nrounds=20
               "eta" = eta
             )
             
-            print(paste("fitting:", params, "nrounds:", nrounds))
+            print(paste("fitting:", colnames(params), params))
+            print(paste("nrounds:", nrounds))
             
-            metrics = c("mlogloss")
             bst <- xgb.cv(params=params,
                           metrics=metrics, nrounds=nrounds,
                           ...)

@@ -6,7 +6,7 @@
 \usage{
 xg_fit(max_depth_vals = c(5), min_child_weight_vals = c(1), nrounds = 200,
   subsample_vals = c(0.6), eta_vals = c(0.3),
-  colsample_bytree_vals = c(0.2), ...)
+  colsample_bytree_vals = c(0.2), metrics = c("logloss"), ...)
 }
 \arguments{
 \item{max_depth_vals}{the values for max_depth to take}
