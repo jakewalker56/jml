@@ -11,7 +11,7 @@
 #' @keywords xgboost fit
 #' @export
 #' @examples
-#' xgfit()
+#' xg_fit()
 xg_fit <- function(max_depth_vals=c(5), min_child_weight_vals = c(1), nrounds=200,
                    subsample_vals=c(0.6), eta_vals = c(0.3), colsample_bytree_vals = c(0.2),
                    metrics = c("logloss"),
@@ -43,7 +43,8 @@ xg_fit <- function(max_depth_vals=c(5), min_child_weight_vals = c(1), nrounds=20
               "eta" = eta
             )
             
-            print(paste("fitting:", colnames(params), params))
+            print("fitting")
+            print(params)
             print(paste("nrounds:", nrounds))
             
             bst <- xgb.cv(params=params,
@@ -92,4 +93,75 @@ xg_fit <- function(max_depth_vals=c(5), min_child_weight_vals = c(1), nrounds=20
   #   ...
   # ))
   return(error_vals)
+}
+
+
+#' XG Train
+#'
+#' This function iterates over the selected parameter space to find the minimal OOS loss using xgboost cross validation
+#' @param y the target matrix
+#' @param max_depth_vals the values for max_depth to take
+#' @param min_child_weight_vals the values for min_child_weight to take
+#' @param nrounds the number of trees to build and cross validate
+#' @param subsample_vals the values for subsample to take
+#' @param eta_vals the values for eta to take
+#' @param colsample_bytree_vals the values for colsample_bytree to take
+#' @keywords xgboost fit
+#' @export
+#' @examples
+#' xg_train()
+xg_train <- function(train_target, train_data, test_target = NULL, test_clean = NULL, bst, ...){
+  xgb_train <- sparse.model.matrix(
+    train_target ~ . , 
+    data=train_clean)[,-1]
+  
+  dtrain <- xgb.DMatrix(xgb_train, label=train_target)
+  if(!is.null(test_target) && !is.null(test_clean)){
+    xgb_test <- sparse.model.matrix(
+      test_target ~ . , 
+      data=test_clean)[,-1]
+    
+    dtest <- xgb.DMatrix(xgb_test, label=test_target)
+  }
+  
+  build_params = list("objective" = "binary:logistic"
+                      , "eval_metric" = "logloss"
+                      , 'eta' = bst$eta
+                      , 'max.depth' = bst$max_depth
+                      , 'min_child_weight' = bst$min_child_weight
+                      , 'subsample' = bst$subsample
+                      , 'colsample_bytree' = bst$colsample_bytree,
+                      ...)
+  nrounds = bst$nrounds
+  
+  old = Sys.time()
+  print("training...")
+  
+  build_params <- append(build_params, list(...))
+  
+  if(!is.null(test_target) && !is.null(test_clean)){
+    watchlist <- list(train = dtrain, test = dtest)
+  } else {
+    watchlist <- list(train = dtrain)
+  }
+  
+  xgb_model <- xgb.train(param=build_params, data = dtrain, nrounds=nrounds, watchlist=watchlist, 
+                         verbose = 2)
+  
+  # xgb_model <- xgboost(
+  #     data=xgb_train,
+  #     label = train_target,
+  #     params = build_params,
+  #     verbose=2,
+  #     nrounds = nrounds,
+  #     ...
+  #   )
+  
+  print(Sys.time() - old)
+  print("predicting")
+  print("full sample")
+  pred_in_xgb <- as.data.frame(predict(xgb_model, xgb_train))[,1]
+  print(multi_log_loss(act=data.frame(train_target), pred=rbind(pred_in_xgb)))
+  
+  return(xgb_model)
 }
