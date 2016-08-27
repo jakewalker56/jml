@@ -1,5 +1,11 @@
 #' Jeneral Neural Net
 #'
+
+#Any nonlinear transform from inputs to outputs can be be treated as a network node IFF you can forward propagate inputs (trivial) and back propagate errors (requires approximate differentiability).  Backpropogating errors within the node itself is optional- we can choose to hold the node constant, or to modify it as we train.  If we choose to hold it constant, we do not require differentiability - we may simply treat its output as constant input to the rest of the model.  It does mean we can't backpropogate errors through that network, so stacking differentiable and non-differentiable elements doesn't make a ton of sense.
+
+#For any Engine structure, we can retrain from scratch, or we can retrain from our current weights, which should make us much faster, but may also lock us into local optima.
+
+
 #' This function is a custom implementation of a neural network
 #' @param X the input matrix
 #' @param Y the output input matrix
@@ -7,44 +13,72 @@
 #' @export
 #' @examples
 #' jnn(X, Y)
-jnn <- function(X, Y, neurons, alphas=NULL,
-                iterations=1000, activations=NULL, 
-                activation_derivatives=NULL,
-                ...){
-  #custom implementation to train a neural network based on X and Y
+jnn <- function(neurons, predictors, responses, activations=NULL, gradients=NULL, ...){
+  #define structure of the network
   
   #weights is a 3 dimensional array
   #index 1 is which layer we are in
   #index 2 is which neuron in that layer we are looking at
   #index 3 is which neuron in the previous layer we are associated with
+  
+  nn <- list( 
+    predictors = predictors,
+    responses = responses,
+    weights = NULL,
+    bias = NULL, 
+    activations= activations,
+    gradients= gradients,
+    trainingIterations = 0
+  ) 
+  
+  ## Set the name for the class 
+  class(nn) <- append(class(nn),"jnn")
+  
   graph_weight <- vector()
   
-  bias = list()
-  weights = list()
+  nn$bias = list()
+  nn$weights = list()
+  
   for(i in 1:(length(neurons) + 1)){
-    weights[[i]] = list()
-    bias[[i]] = list()
+    nn$weights[[i]] = list()
+    nn$bias[[i]] = list()
     if(i > length(neurons)){
       #these are the weights from the last layer to the output 
-      for(j in 1:ncol(Y)){
-        weights[[i]][[j]] = matrix(rep(1, length(weights[[i-1]])), nrow=length(weights[[i-1]]))
-        bias[[i]][[j]] = runif(min=-1, max=1, 1)
+      for(j in 1:ncol(responses)){
+        nn$weights[[i]][[j]] = matrix(rep(1, length(nn$weights[[i-1]])), nrow=length(nn$weights[[i-1]]))
+        nn$bias[[i]][[j]] = runif(min=-1, max=1, 1)
       }
     } else {
       for(j in 1:neurons[i]){
-        bias[[i]][[j]] = runif(min=-1, max=1, 1)
+        nn$bias[[i]][[j]] = runif(min=-1, max=1, 1)
         if (i > 1) {
-          weights[[i]][[j]] = matrix(rep(0, length(weights[[i-1]])), nrow=length(weights[[i-1]]))
+          nn$weights[[i]][[j]] = matrix(rep(0, length(nn$weights[[i-1]])), nrow=length(nn$weights[[i-1]]))
         }
         else {
           #these are the weights assoociated with the inputs
-          weights[[i]][[j]] = matrix(rep(0, ncol(X)), nrow=ncol(X))
+          nn$weights[[i]][[j]] = matrix(rep(0, ncol(predictors)), nrow=ncol(predictors))
         }
       }
     }
   }
   
-  #for sgd, need to set batch size
+  return(nn) 
+}
+
+#' This function is a custom implementation of a neural network
+#' @param nn the current state of the neural network (a jnn object)
+#' @param X the input matrix
+#' @param Y the output input matrix
+#' @param alphas the per-layer update parameter
+#' @keywords jeneral neural net network
+#' @export
+#' @examples
+#' jnn(X, Y)
+train.jnn <- function(nn, X, Y, iterations, alphas=NULL) {
+  #train the network
+  #iterate through X and Y and train our network
+  
+   #for sgd, need to set batch size
   batch_size = 1
   
   for(iteration in 1:iterations){
@@ -53,16 +87,16 @@ jnn <- function(X, Y, neurons, alphas=NULL,
       print(iteration)
     }
     
-    graph_weight <- c(graph_weight, weights[[1]][[1]])
+    #graph_weight <- c(graph_weight, nn$weights[[1]][[1]])
     
     #consume 1 random observation
     #runif returns float not int! index = runif(1, min=1, max=nrow(Y))
-    index = sample(1:nrow(Y), 1)
+    index = sample(1:nrow(Y), batch_size)
     #print(c("training on: ",index))
     x = X[index,]
     y = Y[index,]
-    index
-    layers = forward_propogate_values(weights, bias, activations, x)
+    
+    layers = forward_propogate_values(nn, x)
     
     #backpropogate gradient through network
     #to backpropogate errors, we use the chain rule.  
@@ -131,8 +165,8 @@ jnn <- function(X, Y, neurons, alphas=NULL,
         val = 0
         for(k in 1:length(layers[[i+1]])){
           #k is the number of nodes in the next layer (assuming fully connected layers)
-          val = val + activation_derivatives[i][[1]](matrix(layers[[i]], nrow=1), as.numeric(weights[[i]][[k]]), bias[[i]][[k]]) * 
-                      weights[[i]][[k]][j] * 
+          val = val + nn$gradients[i][[1]](matrix(layers[[i]], nrow=1), as.numeric(nn$weights[[i]][[k]]), nn$bias[[i]][[k]]) * 
+                      nn$weights[[i]][[k]][j] * 
                       node_partials[[i+1]][[k]]    
         }
         node_partials[[i]][[j]] = val
@@ -148,44 +182,60 @@ jnn <- function(X, Y, neurons, alphas=NULL,
     # print(paste(c("Layers:", layers)))
     
     #Now use the activation partials and alpha to update the weights
-    for(i in 1:length(weights)){
-      for(j in 1:length(weights[[i]])){
-        for(k in 1:length(weights[[i]][[j]])) {
+    for(i in 1:length(nn$weights)){
+      for(j in 1:length(nn$weights[[i]])){
+        for(k in 1:length(nn$weights[[i]][[j]])) {
           #update the weight by the step size times the partial derivative.  Note this is very similar
           #to our node_partial calculation, except that d/dWeight is different than d/dX (we multiply
           #by layer value instead of by weight value)
-          weights[[i]][[j]][k] = weights[[i]][[j]][k] - alphas[i] * 
-            activation_derivatives[i][[1]](matrix(layers[[i]], nrow=1), as.matrix(weights[[i]][[j]]), bias[[i]][[j]]) * 
+          nn$weights[[i]][[j]][k] = nn$weights[[i]][[j]][k] - alphas[i] * 
+            nn$gradients[i][[1]](matrix(layers[[i]], nrow=1), as.matrix(nn$weights[[i]][[j]]), nn$bias[[i]][[j]]) * 
             layers[[i]][k] *
             node_partials[[i+1]][[j]]
         }
-        bias[[i]][[j]] = bias[[i]][[j]] - alphas[i] * 
-          activation_derivatives[i][[1]](matrix(layers[[i]], nrow=1), as.matrix(weights[[i]][[j]]), bias[[i]][[j]]) * 
+        nn$bias[[i]][[j]] = nn$bias[[i]][[j]] - alphas[i] * 
+          nn$gradients[i][[1]](matrix(layers[[i]], nrow=1), as.matrix(nn$weights[[i]][[j]]), nn$bias[[i]][[j]]) * 
           node_partials[[i+1]][[j]]
       }
     }
     #print(paste(c("Updated Weights:", weights)))
     
   }
-  plot(graph_weight)
-  return(list(weights, bias))
+  #plot(graph_weight)
+  #update number of iterations run (so we can have a scaling alpha)
+  
+  nn$trainingIterations = nn$trainingIterations + iterations
+  return(nn)
 }
 
-forward_propogate_values <- function(weights, bias, activations, x) {
+
+forward_propogate_values.jnn <- function(nn, x) {
   layers = list()
   layers[[1]] = as.matrix(x)
   #calculate values of each node in each layer based on input
-  for(i in 1:length(weights))
+  for(i in 1:length(nn$weights))
   {
-    layers[[i+1]] = array(rep(0, length(weights[[i]])))
-    for(j in 1:length(weights[[i]])) {
+    layers[[i+1]] = array(rep(0, length(nn$weights[[i]])))
+    for(j in 1:length(nn$weights[[i]])) {
       #value of node i + 1, j is weights at node i, j times value at nodes i, plus bias, then 
       #run through sigmoid function
-      layers[[i+1]][j] =  activations[i][[1]](layers[[i]], weights[[i]][[j]], bias[[i]][[j]])
+      layers[[i+1]][j] =  nn$activations[i][[1]](layers[[i]], nn$weights[[i]][[j]], nn$bias[[i]][[j]])
     }
   }
   return(layers)
 } 
+
+print.jnn <- function(nn){
+  #todo: make it a pretty graph
+  print(nn$weights)
+  print(nn$bias)
+}
+
+predict.jnn <- function(nn, x){
+  layers = forward_propogate_values(nn, x)
+  return(layers[[length(layers)]])
+}
+
 sigmoid <- function(x, w, bias) {
   return(1/(1 + exp(-1 * (x %*% w + bias))))
 } 
@@ -229,16 +279,15 @@ neurons=c(1,1)
 
 alphas = c(1, 0.1, 0.1)
 activations=c(sigmoid, linear, linear)
-activation_derivatives=c(sigmoid_prime, linear_prime, linear_prime)
+gradients=c(sigmoid_prime, linear_prime, linear_prime)
 
-results = jnn(X, Y, neurons = neurons, alphas=alphas, iterations = 6000, 
+nn = jnn(neurons = neurons, 
               activations=activations, 
-              activation_derivatives=activation_derivatives)
+              gradients=gradients)
+nn = train(nn, X, Y, alphas=alphas, iterations = 6000)
 
-weights = results[[1]]
-bias = results[[2]]
-weights
-bias
-forward_propogate_values(weights, bias, activations, X[1,])
-forward_propogate_values(weights, bias, activations, X[2,])
-forward_propogate_values(weights, bias, activations, X[3,])
+print(nn)
+
+predict(nn, weights, bias, activations, X[1,])
+predict(nn, weights, bias, activations, X[2,])
+predict(nn, weights, bias, activations, X[3,])
