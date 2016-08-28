@@ -44,7 +44,7 @@ jnn <- function(neurons, predictors, responses, activations=NULL, gradients=NULL
     nn$bias[[i]] = list()
     if(i > length(neurons)){
       #these are the weights from the last layer to the output 
-      for(j in 1:ncol(responses)){
+      for(j in 1:length(responses)){
         nn$weights[[i]][[j]] = matrix(rep(1, length(nn$weights[[i-1]])), nrow=length(nn$weights[[i-1]]))
         nn$bias[[i]][[j]] = runif(min=-1, max=1, 1)
       }
@@ -56,7 +56,7 @@ jnn <- function(neurons, predictors, responses, activations=NULL, gradients=NULL
         }
         else {
           #these are the weights assoociated with the inputs
-          nn$weights[[i]][[j]] = matrix(rep(0, ncol(predictors)), nrow=ncol(predictors))
+          nn$weights[[i]][[j]] = matrix(rep(0, length(predictors)), nrow=length(predictors))
         }
       }
     }
@@ -82,9 +82,9 @@ train.jnn <- function(nn, X, Y, iterations, alphas=NULL) {
   batch_size = 1
   
   for(iteration in 1:iterations){
-    if(iteration %% 1000 == 0){
+    if(iteration + nn$trainingIterations %% 1000 == 0){
       print("Iteration:")
-      print(iteration)
+      print(iteration + nn$trainingIterations)
     }
     
     #graph_weight <- c(graph_weight, nn$weights[[1]][[1]])
@@ -96,7 +96,7 @@ train.jnn <- function(nn, X, Y, iterations, alphas=NULL) {
     x = X[index,]
     y = Y[index,]
     
-    layers = forward_propogate_values(nn, x)
+    layers = forward_propogate_values.jnn(nn, x)
     
     #backpropogate gradient through network
     #to backpropogate errors, we use the chain rule.  
@@ -227,12 +227,14 @@ forward_propogate_values.jnn <- function(nn, x) {
 
 print.jnn <- function(nn){
   #todo: make it a pretty graph
+  print("$weights:")
   print(nn$weights)
+  print("$bias:")
   print(nn$bias)
 }
 
 predict.jnn <- function(nn, x){
-  layers = forward_propogate_values(nn, x)
+  layers = forward_propogate_values.jnn(nn, x)
   return(layers[[length(layers)]])
 }
 
@@ -283,11 +285,15 @@ gradients=c(sigmoid_prime, linear_prime, linear_prime)
 
 nn = jnn(neurons = neurons, 
               activations=activations, 
-              gradients=gradients)
-nn = train(nn, X, Y, alphas=alphas, iterations = 6000)
+              gradients=gradients,
+              predictors=colnames(X),
+              responses=colnames(Y)
+         )
 
 print(nn)
+nn = train.jnn(nn, X, Y, alphas=alphas, iterations = 6000)
+print(nn)
 
-predict(nn, weights, bias, activations, X[1,])
-predict(nn, weights, bias, activations, X[2,])
-predict(nn, weights, bias, activations, X[3,])
+predict(nn, X[1,])
+predict(nn, X[2,])
+predict(nn, X[3,])
